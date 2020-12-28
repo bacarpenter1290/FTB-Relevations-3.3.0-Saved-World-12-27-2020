@@ -1,0 +1,278 @@
+map = {}
+
+function pack(...)
+	arg.n = nil
+	return arg
+end
+
+element = {
+	x=1,
+	y=1,
+	w=1,
+	h=1,
+	name="",
+	bColor=colors.gray,
+	fColor=colors.orange,
+	new = function(self,o)
+		o = o or {}
+		setmetatable(o,self)
+		self.__index = self
+		return o
+	end,
+	doc = function(self)
+		local returnString = "The element has the following variables:"
+		for k,v in pairs(self.__index) do
+			returnString = returnString.."\n"..k..": "..type(v)
+		end
+		for k,v in pairs(self) do
+			returnString = returnString.."\n"..k..": "..type(v)
+		end
+		return returnString
+	end,
+	isSame = function(self, other)
+		local same = true
+		if self:doc() ~= other:doc() then
+			same = false
+		end
+		return same
+	end,
+	clear = function(self, a)
+		a = a or colors.black
+		m.setBackgroundColor(a)
+		for x = self.x, (self.x + self.w) - 1 do
+			for y = self.y, (self.y + self.h) -1 do
+				m.setCursorPos(x, y)
+				m.write(' ')
+			end
+		end
+		table.sort(map)
+	end,
+}
+
+button = element:new{
+	bColorActive=colors.lime,
+	fColorActive=colors.white,
+	text = "",
+	active = false,
+	mode = "f",
+	func = function() print("no function found") end,
+	draw = function(self)
+		if self.active then
+			m.setBackgroundColor(self.bColorActive)
+			m.setTextColor(self.fColorActive)
+		else
+			m.setBackgroundColor(self.bColor)
+			m.setTextColor(self.fColor)
+		end
+		for yPos = self.y,((self.y + self.h) -1) do
+			for xPos = self.x,((self.x + self.w) -1) do
+				m.setCursorPos(xPos,yPos)
+				m.write(" ")
+				map[xPos] = map[xPos] or {}
+				map[xPos][yPos] = self
+			end
+		end
+		if self.text then
+			local yspot = math.floor(self.y + (self.h/2))
+			local xspot = math.floor(self.x + ((self.w - string.len(self.text))/2))
+			m.setCursorPos(xspot,yspot)
+			m.write(self.text)
+		end
+	end,
+	swapState = function(self)
+		self.active = not self.active
+		self.func()
+		self:draw()
+		if mode == "f" then
+			sleep(0.5)
+			self.active = not self.active
+			self.draw()
+		end
+	end,
+	toggle = function(self,a)
+		a = a or 0.5
+		self:swapState()
+		sleep(a)
+		self:swapState()
+	end
+}
+
+button.onClick = button.swapState
+
+label = element:new{
+	text = "",
+	draw = function(self)
+		m.setCursorPos(self.x,self.y)
+		m.setBackgroundColor(self.bColor)
+		m.setTextColor(self.fColor)
+		m.write(self.text)
+		self.w = string.len(self.text)
+	end
+}
+
+box = element:new{
+	draw = function(self)
+		m.setBackgroundColor(self.bColor)
+		m.setCursorPos(self.x, self.y)
+		for yPos = self.y, self.y + self.h do
+			m.write(string.rep(" ", self.w))
+			m.setCursorPos(self.x, yPos)
+		end
+	end
+}
+
+bar = element:new{
+	size=0,
+	current=0,
+	max=0,
+	use=true,
+	orientation="horizontal",
+	topToBottom = false,
+	update = function(self,xInput,yInput)
+		if use then
+			if self.orientation == "vertical" then
+				pixelClicked = (self.size+self.y-yInput)
+			else
+				pixelClicked = (xInput-self.x)+1
+			end
+			self.current = (pixelClicked/self.size)*self.max
+		 	self:draw()
+		end
+	end,
+	setOnClick = function(self,a,b)
+		self.onClick = function(xInput,yInput)
+			self:update(xInput,yInput)
+			if b then
+				return a(unpack(b))
+			else
+				return a()
+			end
+		end
+	end,
+	draw = function(self)
+		local activePixels = math.floor((((self.current/self.max)*self.size)) + 0.5 )
+		if self.orientation == "horizontal" then
+			m.setBackgroundColor(self.bColor)
+			for xPos = self.x,((self.x+self.size)-1) do
+				m.setCursorPos(xPos,self.y)
+				m.write(" ")
+				map[xPos] = map[xPos] or {}
+				map[xPos][self.y] = self
+			end
+			m.setBackgroundColor(self.fColor)
+			for xPos = self.x,((self.x+activePixels)-1) do
+				m.setCursorPos(xPos,self.y)
+				m.write(" ")
+			end
+		elseif self.orientation == "vertical" then
+			if topToBottom then
+				m.setBackgroundColor(self.bColor)
+				for yPos = self.y,((self.y+self.size)-1) do
+					m.setCursorPos(self.x,yPos)
+					m.write(" ")
+					map[self.x] = map[self.x] or {}
+					map[self.x][yPos] = self
+				end
+				m.setBackgroundColor(self.fColor)
+				for yPos = (self.size+self.y-activePixels),(self.size+self.y-1) do
+					m.setCursorPos(self.x,yPos)
+					m.write(" ")
+				end
+			else
+				m.setBackgroundColor(self.bColor)
+				for yPos = self.y,((self.y+self.size)-1) do
+					m.setCursorPos(self.x,yPos)
+					m.write(" ")
+					map[self.x] = map[self.x] or {}
+					map[self.x][yPos] = self
+				end
+				m.setBackgroundColor(self.fColor)
+				for yPos = (self.y),(self.y + (self.current/self.max)*self.size - 1) do
+					m.setCursorPos(self.x,yPos)
+					m.write(" ")
+				end
+			end
+		end
+		if self.orientation == "horizontal" then
+			self.w = self.size
+		elseif self.orientation == "vertical" then
+			self.h = self.size
+		end
+	end  
+}
+
+bar.onClick = bar.update
+
+header = element:new{
+	text = "",
+	draw = function(self)
+		local monX = getSize()
+		m.setCursorPos(1,1)
+		m.setBackgroundColor(self.bColor)
+		m.setTextColor(self.fColor)
+		m.write(string.rep(' ', monX))
+		m.setCursorPos(math.floor(1+(monX - string.len(self.text)) /2 ) - 1,1)
+		m.write(self.text)
+		self.w = monX
+	end
+}
+
+function clear(a)
+	a = a or colors.black
+	m.setBackgroundColor(a)
+	m.clear()
+	map = {}
+end
+
+function wrap(sides)
+	if not sides then
+		local peripheralList = peripheral.getNames()
+		monitorList = {}
+		for i,v in pairs(peripheralList) do
+			if peripheral.getType(v) == "monitor" then
+				table.insert(monitorList,v)
+			end
+		end
+	else
+		monitorList = sides
+	end
+	local methods = peripheral.find("monitor")
+	m = {}
+	for i,v in pairs(methods) do
+		m[i] = function(...)
+			local output = {}
+			for a,b in pairs(monitorList) do
+				output[b] = pack(peripheral.call(b,i,unpack(arg)))
+			end
+			return output
+		end
+	end
+	return m
+end
+
+function getSize()
+	local t = m.getSize()
+	local x = 0
+	local y = 0
+	for k,v in pairs(t) do
+		if v[1] > x then
+			x = v[1]
+		end
+		if v[2] > y then
+			y = v[2]
+		end
+	end
+	return x,y
+end
+
+function awaitClick()
+	local event,side,xClick,yClick = os.pullEvent("monitor_touch")
+	if map[xClick] then
+		if map[xClick][yClick] then
+			local output = map[xClick][yClick]:onClick(xClick,yClick)
+		else
+			local output = nil
+		end
+	end
+	return xClick,yClick,output
+end

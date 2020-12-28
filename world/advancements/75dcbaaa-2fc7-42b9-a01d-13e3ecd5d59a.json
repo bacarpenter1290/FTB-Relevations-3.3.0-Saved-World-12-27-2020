@@ -1,0 +1,29 @@
+{
+  "minecraft:recipes/building_blocks/oak_planks": {
+    "criteria": {
+      "has_log": "2020-12-01 19:41:38 +0000"
+    },
+    "done": true
+  },
+  "astralsorcery:root": {
+    "criteria": {
+      "astralsorcery_present": "2020-12-01 19:38:47 +0000"
+    },
+    "done": true
+  },
+  "minecraft:recipes/building_blocks/dark_oak_planks": {
+    "criteria": {
+      "has_log2": "2020-12-01 20:10:26 +0000"
+    },
+    "done": true
+  },
+  "minecraft:adventure/adventuring_time": {
+    "criteria": {
+      "forest_hills": "2020-12-01 20:12:52 +0000",
+      "plains": "2020-12-01 19:38:47 +0000",
+      "savanna": "2020-12-01 20:12:41 +0000",
+      "roofed_forest": "2020-12-01 19:41:33 +0000"
+    },
+    "done": false
+  }
+}
